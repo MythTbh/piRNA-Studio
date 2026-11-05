@@ -67,7 +67,7 @@ const storeGet = (k) => {
 };
 document.documentElement.dataset.theme = "light";
 let data = null,
-  run = "demo",
+  run = "",
   token = 0,
   live = false,
   latestRun = "",
@@ -81,7 +81,7 @@ const navigate = (s) => {
 };
 const routeParts = () => location.hash.slice(1).split("/");
 function home() {
-  return `<div class="wrap"><section class="intro"><div class="eyebrow">Small RNA analysis</div><h1>Identify piRNA clusters.<br>Compare biological replicates.</h1><p>Inspect read quality, genomic coverage, cluster calls, and expression differences from single-end or paired-end FASTQ libraries.</p><p class="caption">${live ? "Analysis server connected." : "Public analysis hosting is not connected. Explore the completed datasets below; new analyses currently require the local app."}</p><div class="actions"><a class="btn primary" href="#results/fly/overview">Explore public sequencing data</a><a class="btn" href="#new">${live ? "Start analysis" : "Configure a local analysis"}</a></div></section><div class="sectionHead"><h2>Inspect the evidence</h2></div><section class="dataset"><h3>Drosophila Ago3-IP</h3><p>Interactive results from 20,000 reads in public library SRR1568761, mapped to chromosome 2R. Inspect the cluster calls, read accounting, and agreement with published annotations.</p><div class="actions"><a href="#results/fly/clusters">Browse genomic clusters</a><a href="benchmark.html">Read benchmark limitations</a></div></section><section class="dataset"><h3>Six-sample synthetic study</h3><p>An engineered dataset for testing replicate grouping and differential expression. These results demonstrate the workflow and are not evidence of biological performance.</p><a href="#results/demo/overview">Open synthetic results</a></section><div class="sectionHead"><h2>Analysis steps</h2><a href="#methods">Methods</a></div><div class="pipeline">${[["Prepare reads","Validate libraries, trim adapters or assemble mates, and filter reads."],["Map and inspect","Align retained reads and review quality for each sample."],["Call clusters","Identify genomic intervals supported by biological replicates."],["Compare conditions","Count reads within consensus intervals and examine expression differences."]].map(([title,description],i)=>`<div class="pipe"><span>${String(i+1).padStart(2,"0")}</span><strong>${title}</strong><p>${description}</p></div>`).join("")}</div><div id="recent"></div></div>`;
+  return `<div class="wrap"><section class="intro"><div class="eyebrow">Small RNA analysis</div><h1>Identify piRNA clusters.<br>Compare biological replicates.</h1><p>Inspect read quality, genomic coverage, cluster calls, and expression differences from single-end or paired-end FASTQ libraries.</p><p class="caption">${live ? "Analysis server connected." : "Public analysis hosting is not connected. Explore the completed datasets below; new analyses currently require the local app."}</p><div class="actions"><a class="btn primary" href="#results/fly/overview">Explore public sequencing data</a><a class="btn" href="#new">${live ? "Start analysis" : "Configure a local analysis"}</a></div></section><div class="sectionHead"><h2>Inspect the evidence</h2></div><section class="dataset"><h3>Drosophila Ago3-IP</h3><p>Interactive results from 20,000 reads in public library SRR1568761, mapped to chromosome 2R. Inspect the cluster calls, read accounting, and agreement with published annotations.</p><div class="actions"><a href="#results/fly/clusters">Browse genomic clusters</a><a href="benchmark.html">Read benchmark limitations</a></div></section><div class="sectionHead"><h2>Analysis steps</h2><a href="#methods">Methods</a></div><div class="pipeline">${[["Prepare reads","Validate libraries, trim adapters or assemble mates, and filter reads."],["Map and inspect","Align retained reads and review quality for each sample."],["Call clusters","Identify genomic intervals supported by biological replicates."],["Compare conditions","Count reads within consensus intervals and examine expression differences."]].map(([title,description],i)=>`<div class="pipe"><span>${String(i+1).padStart(2,"0")}</span><strong>${title}</strong><p>${description}</p></div>`).join("")}</div><div id="recent"></div></div>`;
 }
 function title(k, h, p = "", action = "") {
   return `<div class="titleRow"><div><div class="eyebrow">${E(k)}</div><h1>${E(h)}</h1>${p ? `<div class="muted">${E(p)}</div>` : ""}</div>${action}</div>`;
@@ -570,12 +570,6 @@ function bindDE() {
               )}</tbody></table></div><p class="caption">Counts by sample, shaded relative to the maximum in each cluster.</p>`
           : empty("No clusters meet the selected thresholds."),
       ) +
-      (run === "demo"
-        ? panel(
-            "Independent R cross-check",
-            '<p>R DESeq2 1.50.2 and PyDESeq2 0.5.2 agreed on all 18 significance calls in this synthetic dataset. Eight clusters passed adjusted p &lt; 0.05 and |log2 fold change| ≥ 1. The Spearman correlation of log2 fold changes was 1.00.</p><p class="caption">The synthetic counts had too little dispersion for a fitted trend in R, so the cross-check used gene-wise dispersion estimates. <a href="downloads/crosscheck.tsv" download>Download the comparison (TSV)</a></p>',
-          )
-        : "") +
       panel(
         "Differential expression results",
         table(
@@ -682,21 +676,20 @@ async function loadBenchmark() {
   return window.PIRNA_BENCHMARK;
 }
 async function results(parts, my) {
-  run = parts[1] || "demo";
+  run = parts[1] || latestRun;
+  if (!run || run === "demo") {
+    $("#main").innerHTML = `<div class="wrap">${title("Results workspace", "No analysis results selected", "Run an analysis or select a completed run from Workspace.")}<p>Synthetic demonstration results are not included.</p><div class="actions"><a class="btn primary" href="#new">New analysis</a><a class="btn" href="#home">Workspace</a></div><p><a href="#results/fly/overview">View the separately labelled public Drosophila benchmark</a></p></div>`;
+    return;
+  }
   const slug = slugs.includes(parts[2]) ? parts[2] : "overview";
-  const d =
-    run === "demo"
-      ? window.PIRNA_DEMO
-      : run === "fly"
-        ? await loadBenchmark()
-        : resultsCache[run] || (await api.results(run));
+  const d = run === "fly" ? await loadBenchmark() : resultsCache[run] || (await api.results(run));
   if (my !== token) return;
   if (!d)
     throw Error(
-      "The example dataset could not be loaded. Open the app with its bundled demo.js file.",
+      "The selected analysis results could not be loaded.",
     );
   data = d;
-  if (run !== "demo" && run !== "fly") {
+  if (run !== "fly") {
     resultsCache[run] = d;
     latestRun = run;
   }
@@ -710,7 +703,7 @@ async function results(parts, my) {
     exportsView,
   ][slugs.indexOf(slug)];
   $("#main").innerHTML =
-    `<div class="wrap">${title("Results workspace", run === "demo" ? "Synthetic small RNA study" : run === "fly" ? "Drosophila Ago3-IP" : "Analysis results", run === "demo" ? "Precomputed synthetic example · engineered reference intervals" : run === "fly" ? "SRR1568761 · chromosome 2R · 20,000 public reads" : "Run " + run, '<a class="btn" href="#new">New analysis</a>')}<nav class="tabs" aria-label="Results sections">${tabs.map((v, i) => `<a class="${slugs[i] === slug ? "active" : ""}" href="#results/${encodeURIComponent(run)}/${slugs[i]}">${v}</a>`).join("")}</nav>${pane()}</div>`;
+    `<div class="wrap">${title("Results workspace", run === "fly" ? "Drosophila Ago3-IP" : "Analysis results", run === "fly" ? "SRR1568761 · chromosome 2R · 20,000 public reads" : "Run " + run, '<a class="btn" href="#new">New analysis</a>')}<nav class="tabs" aria-label="Results sections">${tabs.map((v, i) => `<a class="${slugs[i] === slug ? "active" : ""}" href="#results/${encodeURIComponent(run)}/${slugs[i]}">${v}</a>`).join("")}</nav>${pane()}</div>`;
   bindTables();
   if (slug === "overview") mountOverview(d, run);
   if (slug === "clusters") bindClusters();
@@ -733,9 +726,9 @@ function bindExports() {
 function downloadExport(k) {
   const a = document.createElement("a");
   a.href =
-    run === "demo" || run === "fly"
+    run === "fly"
       ? "downloads/" +
-        (run === "fly" ? "fly-" : "") +
+        "fly-" +
         { html: "report.html", zip: "outputs.zip", reproduce: "reproduce.zip" }[
           k
         ]
@@ -1177,11 +1170,11 @@ function methods() {
       "A read sequence with multiple genomic alignments. Fractional counting splits its weight across hits.",
     ],
   ];
-  return `<div class="wrap">${title("Documentation", "Methods & help", "Interpret each stage and reproduce an analysis.")}<div class="sectionHead"><h2>Analysis methods</h2></div><div class="grid">${panel("Analysis backends", "<p>The portable engine trims exact adapters, maps exact matches on both strands of a small reference, and groups nearby mapped loci into candidate clusters. Use it for demonstrations and small-reference experiments.</p><p>The external backend uses cutadapt, duster, sRNAmapper and proTRAC. Each run records its chosen tools and parameters in Provenance.</p>")}${panel("Sample quality gates", '<ul class="steps"><li>At least 20% of reads in the configured piRNA length range and the largest peak inside it.</li><li>At least 10% distinct reads among piRNA-sized reads.</li><li>At least 35% 1U or 10A.</li><li>10 nt ping-pong overlap z-score above 1.65.</li></ul><p class="caption">Warnings allow analysis to continue. Tissue context can affect the ping-pong signature.</p>')}</div><div class="sectionHead"><h2>Interpretation</h2></div><div class="grid">${panel("Expression and validation", "<p>Counts use the discovered consensus intervals as features. PyDESeq2 fits Wald tests to integer counts from uniquely mapped reads. The cluster table also supports fractional expression counts. Descriptive runs report fold changes with empty p-values. Inspect the recorded count policy before comparing runs.</p><p>Precision and recall use 50% reciprocal overlap. Base-pair Jaccard divides the intersecting genomic bases by the union.</p>")}${panel("Limits of the examples", "<p>The synthetic study contains engineered loci and conditions for exercising the workflow. Its reference metrics describe recovery of those synthetic intervals.</p><p>The Drosophila benchmark compares calls to published clusters on chromosome 2R. Whole-genome, multi-sample performance requires separate evaluation.</p>")}</div><div class="sectionHead"><h2>Glossary</h2></div>${panel("Terms", terms.map(([k, v]) => `<div class="check"><strong>${k}</strong><p>${v}</p></div>`).join(""))}</div>`;
+  return `<div class="wrap">${title("Documentation", "Methods & help", "Interpret each stage and reproduce an analysis.")}<div class="sectionHead"><h2>Analysis methods</h2></div><div class="grid">${panel("Analysis backends", "<p>The portable engine trims exact adapters, maps exact matches on both strands of a small reference, and groups nearby mapped loci into candidate clusters. Use it for demonstrations and small-reference experiments.</p><p>The external backend uses cutadapt, duster, sRNAmapper and proTRAC. Each run records its chosen tools and parameters in Provenance.</p>")}${panel("Sample quality gates", '<ul class="steps"><li>At least 20% of reads in the configured piRNA length range and the largest peak inside it.</li><li>At least 10% distinct reads among piRNA-sized reads.</li><li>At least 35% 1U or 10A.</li><li>10 nt ping-pong overlap z-score above 1.65.</li></ul><p class="caption">Warnings allow analysis to continue. Tissue context can affect the ping-pong signature.</p>')}</div><div class="sectionHead"><h2>Interpretation</h2></div><div class="grid">${panel("Expression and validation", "<p>Counts use the discovered consensus intervals as features. PyDESeq2 fits Wald tests to integer counts from uniquely mapped reads. The cluster table also supports fractional expression counts. Descriptive runs report fold changes with empty p-values. Inspect the recorded count policy before comparing runs.</p><p>Precision and recall use 50% reciprocal overlap. Base-pair Jaccard divides the intersecting genomic bases by the union.</p>")}${panel("Limits of the examples", "<p>The Drosophila benchmark compares calls to published clusters on chromosome 2R. Whole-genome, multi-sample performance requires separate evaluation.</p>")}</div><div class="sectionHead"><h2>Glossary</h2></div>${panel("Terms", terms.map(([k, v]) => `<div class="check"><strong>${k}</strong><p>${v}</p></div>`).join(""))}</div>`;
 }
 function legal(page) {
   const privacy = page === "privacy";
-  const text = privacy ? `<h2>Data entered in the workspace</h2><p>The current public site displays precomputed datasets. Selecting a FASTQ file in the setup form does not upload it to a hosted analysis service. Public analysis hosting is not connected.</p><h2>Local analysis</h2><p>When you use the local app, files are submitted to the analysis server running on your computer. Uploaded files, run records, and outputs are stored in its configured data directory. There is no automatic deletion schedule in the current app.</p><h2>Reference downloads</h2><p>The local app contacts NCBI to retrieve the selected reference assembly. NCBI receives the download request from that computer. Read files are not sent to NCBI by this feature.</p><h2>Hosting and browser storage</h2><p>The public host receives normal web requests, which can include your IP address and browser information. Its logging and retention arrangements must be confirmed before launch. The application has no advertising or analytics integration in its source. Earlier versions saved a display preference under pirna-theme in browser local storage; that preference is no longer used.</p><h2>Contact and deletion requests</h2><p>piRNA Studio is operated by Mithila Jahan Jui. The contact method, hosting arrangements, and process for privacy requests remain to be confirmed. This policy must be completed before public analysis launches.</p>` : `<h2>Scope of the service</h2><p>piRNA Studio is a research software workspace for small RNA analysis. The current public site provides precomputed examples and configuration screens. It does not provide hosted analysis of uploaded sequencing data.</p><h2>Use of data</h2><p>Only process data you are authorized to use. Before submitting data to any future hosted service, check its published data handling terms. Local users control the input files and stored outputs on their own computer.</p><h2>Interpreting results</h2><p>Cluster calls and statistical results depend on library quality, reference assembly, parameters, and replicate design. The synthetic dataset demonstrates software behavior. The public benchmark is limited to its stated read subset and chromosome. Neither establishes performance on every dataset.</p><h2>Research use</h2><p>The software has not been validated for clinical diagnosis or treatment decisions. Review methods and provenance and independently validate scientific conclusions.</p><h2>Terms pending completion</h2><p>piRNA Studio is operated by Mithila Jahan Jui. Contact details, applicable jurisdiction, hosting limits, data retention, and any fees must be confirmed before final terms can be issued. This draft does not announce a paid or public computing service.</p>`;
+  const text = privacy ? `<h2>Data entered in the workspace</h2><p>The current public site displays precomputed datasets. Selecting a FASTQ file in the setup form does not upload it to a hosted analysis service. Public analysis hosting is not connected.</p><h2>Local analysis</h2><p>When you use the local app, files are submitted to the analysis server running on your computer. Uploaded files, run records, and outputs are stored in its configured data directory. There is no automatic deletion schedule in the current app.</p><h2>Reference downloads</h2><p>The local app contacts NCBI to retrieve the selected reference assembly. NCBI receives the download request from that computer. Read files are not sent to NCBI by this feature.</p><h2>Hosting and browser storage</h2><p>The public host receives normal web requests, which can include your IP address and browser information. Its logging and retention arrangements must be confirmed before launch. The application has no advertising or analytics integration in its source. Earlier versions saved a display preference under pirna-theme in browser local storage; that preference is no longer used.</p><h2>Contact and deletion requests</h2><p>piRNA Studio is operated by Mithila Jahan Jui. The contact method, hosting arrangements, and process for privacy requests remain to be confirmed. This policy must be completed before public analysis launches.</p>` : `<h2>Scope of the service</h2><p>piRNA Studio is a research software workspace for small RNA analysis. The current public site provides precomputed examples and configuration screens. It does not provide hosted analysis of uploaded sequencing data.</p><h2>Use of data</h2><p>Only process data you are authorized to use. Before submitting data to any future hosted service, check its published data handling terms. Local users control the input files and stored outputs on their own computer.</p><h2>Interpreting results</h2><p>Cluster calls and statistical results depend on library quality, reference assembly, parameters, and replicate design. The public benchmark is limited to its stated read subset and chromosome. This does not establish performance on every dataset.</p><h2>Research use</h2><p>The software has not been validated for clinical diagnosis or treatment decisions. Review methods and provenance and independently validate scientific conclusions.</p><h2>Terms pending completion</h2><p>piRNA Studio is operated by Mithila Jahan Jui. Contact details, applicable jurisdiction, hosting limits, data retention, and any fees must be confirmed before final terms can be issued. This draft does not announce a paid or public computing service.</p>`;
   return `<div class="wrap legal">${title("Service information",privacy ? "Privacy policy" : "Terms and conditions")}<p class="notice">Draft for review. Contact and hosting details are pending. Not approved for launch.</p>${text}<p><a href="#home">Return to workspace</a></p></div>`;
 }
 function showError(err) {

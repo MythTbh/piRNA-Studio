@@ -10,7 +10,7 @@ This repository distributes the local app and precomputed demonstrations. A host
 
 ## Open the workspace
 
-* **Explore precomputed results.** Open `web/dist/index.html` in a browser. The synthetic six-library study includes a fitted two-condition comparison. The separate Drosophila benchmark uses public sequencing data.
+* **Explore precomputed results.** Open `web/dist/index.html` in a browser. The Drosophila benchmark uses public sequencing data and is explicitly labelled. The Results tab stays empty until an analysis is selected. Synthetic results are not distributed in the interface or its downloads.
 * **Analyze local files on macOS.** Double-click `Launch piRNA Studio.command`. Keep the terminal window open while a run is active. On first launch, the launcher downloads and verifies a project-local Python 3.12 / Perl 5.32.1 environment, installs the pinned Python packages and research scripts, and then opens the app. Internet is required for initial setup. Subsequent launches verify and reuse the tools. Keep the extracted folder in its permanent location before first launch. On Linux x86_64, run `bash "Launch piRNA Studio.command"`. Windows users can use Docker Compose; this is not a native Windows installer.
 * **Run the research tools in containers.** From this directory run `docker compose up --build`. Open the same address and choose the proTRAC backend. Docker Compose runs a web proxy and the Python engine, with analysis files in the named runs volume. Stop a local launcher before starting Compose on the same port.
 
@@ -45,7 +45,7 @@ To compare the fitted Wald statistics with R on the same integer matrix, install
 Rscript packaging/crosscheck.R runs/synthetic Perturbed Control
 ```
 
-The script writes crosscheck.tsv next to the run and reports threshold agreement and rank correlation. The demo uses generated replicates and known input regions for software verification. Biological interpretation belongs to the separate real-data benchmark, whose sampling limits and results are reported in the workspace.
+The script writes crosscheck.tsv next to the run and reports threshold agreement and rank correlation. Developer test fixtures use generated replicates and known input regions for software verification; they are not user-facing results. Biological interpretation belongs to the separate real-data benchmark, whose sampling limits and results are reported in the workspace.
 
 ## Implementation and scope
 
