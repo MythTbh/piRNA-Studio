@@ -1,0 +1,82 @@
+# snakemake -s engine/Snakefile --cores 2 --config analysis=engine/example/config.json out=results
+from pathlib import Path
+import sys
+import os
+from importlib.metadata import version
+os.environ["PIRNA_SNAKEMAKE_VERSION"] = version("snakemake")
+
+BASE = Path(workflow.basedir)
+sys.path.insert(0,str(BASE))
+import inputs as studio_inputs
+
+ANALYSIS = str(Path(config["analysis"]).resolve())
+OUT = str(Path(config["out"]).resolve())
+META = studio_inputs.load_config(ANALYSIS)
+SAMPLES = {s["sample_id"]:[s[k] for k in ("fastq_path","fastq_r2_path") if s.get(k)] for s in META["samples"]}
+if any(not studio_inputs.SAFE_ID.fullmatch(s) for s in SAMPLES) or len(SAMPLES) != len(META["samples"]):
+    raise ValueError("Expected unique, path-safe sample IDs")
+STATE = os.environ.get("PIRNA_STAGE_DIR",OUT + "/workflow")
+S = STATE + "/samples/{sid}/"
+ELAND = [S+"aligned.map"] if META.get("params",{}).get("backend")=="protrac" else []
+STAGE = str(BASE/"workflow"/"stage.py")
+SRC = list(map(str, BASE.glob("*.py"))) + [STAGE]
+REFERENCES = list(META.get("ncrna",{}).values()) + [META[k] for k in ["reference","repeats"] if META.get(k)]
+# Track external source files as DAG inputs, so edits invalidate downstream outputs.
+SHEET = [str(Path(ANALYSIS).parent / META["sample_sheet"])] if META.get("sample_sheet") else []
+
+rule all:
+    input: OUT+"/results.json"
+
+rule preflight:
+    input: [ANALYSIS,META["genome"],*REFERENCES,*SHEET,*SAMPLES.values(),*SRC]
+    output: STATE+"/checks.json"
+    conda: "workflow/envs/python.yaml"
+    shell: "python {STAGE:q} check {ANALYSIS:q} {OUT:q}"
+
+rule genome:
+    input: STATE+"/checks.json", META["genome"]
+    output: STATE+"/genome.fa"
+    conda: "workflow/envs/python.yaml"
+    shell: "python {STAGE:q} genome {ANALYSIS:q} {OUT:q}"
+
+rule trim_and_collapse:
+    input: STATE+"/checks.json", lambda w:SAMPLES[w.sid]
+    output: S+"trim.json"
+    conda: "workflow/envs/trim.yaml"
+    shell: "python {STAGE:q} trim {ANALYSIS:q} {OUT:q} {wildcards.sid:q}"
+
+rule low_complexity:
+    input: S+"trim.json"
+    output: S+"dust.json"
+    conda: "workflow/envs/perl.yaml"
+    shell: "python {STAGE:q} dust {ANALYSIS:q} {OUT:q} {wildcards.sid:q}"
+
+rule filter_small_rnas:
+    input: S+"dust.json", list(META.get("ncrna",{}).values())
+    output: S+"filter.json"
+    conda: "workflow/envs/python.yaml"
+    shell: "python {STAGE:q} filter {ANALYSIS:q} {OUT:q} {wildcards.sid:q}"
+
+rule genome_mapping:
+    input: S+"filter.json", STATE+"/genome.fa"
+    output: S+"map.json", ELAND
+    conda: "workflow/envs/perl.yaml"
+    shell: "python {STAGE:q} map {ANALYSIS:q} {OUT:q} {wildcards.sid:q}"
+
+rule cluster_calling:
+    input: S+"map.json", STATE+"/genome.fa", ELAND
+    output: S+"calls.json"
+    conda: "workflow/envs/perl.yaml"
+    shell: "python {STAGE:q} call {ANALYSIS:q} {OUT:q} {wildcards.sid:q}"
+
+rule quality_control:
+    input: S+"calls.json", S+"map.json", S+"dust.json", S+"filter.json", S+"trim.json"
+    output: S+"profile.json"
+    conda: "workflow/envs/python.yaml"
+    shell: "python {STAGE:q} qc {ANALYSIS:q} {OUT:q} {wildcards.sid:q}"
+
+rule consensus_counts_de_and_report:
+    input: expand(S+"profile.json",sid=SAMPLES), REFERENCES
+    output: report(OUT+"/results.json",category="Analysis"), report(OUT+"/clusters.bed",category="Features"), report(OUT+"/de.tsv",category="Contrasts"), report(OUT+"/report.html",category="Report")
+    conda: "workflow/envs/statistics.yaml"
+    shell: "python {STAGE:q} finish {ANALYSIS:q} {OUT:q}"

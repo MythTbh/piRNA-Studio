@@ -1,0 +1,9 @@
+.pirna-data
+**/__pycache__
+*.zip
+.venv
+
+.runtime
+.perl
+.tools
+.backups

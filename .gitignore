@@ -1,0 +1,24 @@
+# Local data, runtime downloads and credentials
+.pirna-data/
+.runtime/
+.venv/
+.perl/
+.tools/
+.backups/
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+# Generated caches and development dependencies
+__pycache__/
+*.py[cod]
+.snakemake/
+.ruff_cache/
+node_modules/
+.DS_Store
+# Release archives live in GitHub Releases
+*.zip
+!web/dist/downloads/*.zip
+web/dist/downloads/piRNA-Studio.zip
+runs/

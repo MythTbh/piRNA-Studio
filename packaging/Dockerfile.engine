@@ -1,0 +1,24 @@
+FROM python:3.12.10-bookworm AS perl-build
+WORKDIR /tmp
+RUN curl --fail --location --silent --show-error https://www.cpan.org/src/5.0/perl-5.32.1.tar.xz -o perl.tar.xz \
+    && echo '57cc47c735c8300a8ce2fa0643507b44c4ae59012bfdad0121313db639e02309  perl.tar.xz' | sha256sum -c - \
+    && tar -xf perl.tar.xz && cd perl-5.32.1 \
+    && sh Configure -des -Dprefix=/opt/perl -Dusethreads && make -j2 && make install
+
+FROM python:3.12.10-bookworm
+COPY --from=perl-build /opt/perl /opt/perl
+ENV PATH="/opt/perl/bin:${PATH}"
+WORKDIR /studio
+COPY packaging/requirements.txt /tmp/requirements.txt
+RUN pip install --no-cache-dir -r /tmp/requirements.txt
+COPY packaging/install_tools.py /tmp/install_tools.py
+RUN python /tmp/install_tools.py /opt/pirna-tools
+ENV DUSTER_PL=/opt/pirna-tools/TBr2_duster.pl SRNAMAPPER_PL=/opt/pirna-tools/sRNAmapper.pl PROTRAC_PL=/opt/pirna-tools/proTRAC_2.4.2.pl PIRNA_DATA=/data PIRNA_ORCHESTRATOR=snakemake PYTHONDONTWRITEBYTECODE=1
+COPY engine engine
+COPY server server
+COPY packaging packaging
+COPY benchmark benchmark
+RUN useradd --system --create-home studio && mkdir /data && chown studio /data
+USER studio
+EXPOSE 8765
+CMD ["uvicorn", "server.asgi:app", "--host", "0.0.0.0", "--port", "8765"]

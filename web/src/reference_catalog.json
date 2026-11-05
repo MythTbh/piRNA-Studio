@@ -1,0 +1,68 @@
+[
+  {
+    "id": "fly",
+    "label": "Fruit fly",
+    "species": "Drosophila melanogaster",
+    "accession": "GCF_000001215.4",
+    "assembly": "Release_6_plus_ISO1_MT",
+    "url": "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/001/215/GCF_000001215.4_Release_6_plus_ISO1_MT/GCF_000001215.4_Release_6_plus_ISO1_MT_genomic.fna.gz",
+    "md5": "869cf40e4f5c7ca27d04ca9ae7baee4f",
+    "bytes": 44235956,
+    "source": "https://www.ncbi.nlm.nih.gov/datasets/genome/GCF_000001215.4/"
+  },
+  {
+    "id": "worm",
+    "label": "Nematode",
+    "species": "Caenorhabditis elegans",
+    "accession": "GCF_000002985.6",
+    "assembly": "WBcel235",
+    "url": "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/002/985/GCF_000002985.6_WBcel235/GCF_000002985.6_WBcel235_genomic.fna.gz",
+    "md5": "177a91ec15063e305188306b7e709cb1",
+    "bytes": 31710738,
+    "source": "https://www.ncbi.nlm.nih.gov/datasets/genome/GCF_000002985.6/"
+  },
+  {
+    "id": "zebrafish",
+    "label": "Zebrafish",
+    "species": "Danio rerio",
+    "accession": "GCF_000002035.6",
+    "assembly": "GRCz11",
+    "url": "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/002/035/GCF_000002035.6_GRCz11/GCF_000002035.6_GRCz11_genomic.fna.gz",
+    "md5": "c8bfae5e82f833c42b7b0668cbe322c7",
+    "bytes": 528373640,
+    "source": "https://www.ncbi.nlm.nih.gov/datasets/genome/GCF_000002035.6/"
+  },
+  {
+    "id": "mouse",
+    "label": "Mouse",
+    "species": "Mus musculus",
+    "accession": "GCF_000001635.27",
+    "assembly": "GRCm39",
+    "url": "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/001/635/GCF_000001635.27_GRCm39/GCF_000001635.27_GRCm39_genomic.fna.gz",
+    "md5": "c0b0c4c3f54d2b480efe68a18bf7e42b",
+    "bytes": 834262758,
+    "source": "https://www.ncbi.nlm.nih.gov/datasets/genome/GCF_000001635.27/"
+  },
+  {
+    "id": "rat",
+    "label": "Rat",
+    "species": "Rattus norvegicus",
+    "accession": "GCF_015227675.2",
+    "assembly": "mRatBN7.2",
+    "url": "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/015/227/675/GCF_015227675.2_mRatBN7.2/GCF_015227675.2_mRatBN7.2_genomic.fna.gz",
+    "md5": "15c0e1d4fc8400a9f54f1bff3670b3aa",
+    "bytes": 824491249,
+    "source": "https://www.ncbi.nlm.nih.gov/datasets/genome/GCF_015227675.2/"
+  },
+  {
+    "id": "human",
+    "label": "Human",
+    "species": "Homo sapiens",
+    "accession": "GCF_000001405.40",
+    "assembly": "GRCh38.p14",
+    "url": "https://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/000/001/405/GCF_000001405.40_GRCh38.p14/GCF_000001405.40_GRCh38.p14_genomic.fna.gz",
+    "md5": "c30471567037b2b2389d43c908c653e1",
+    "bytes": 972898531,
+    "source": "https://www.ncbi.nlm.nih.gov/datasets/genome/GCF_000001405.40/"
+  }
+]

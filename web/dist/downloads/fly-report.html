@@ -1,0 +1,127 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<title>piRNA Studio analysis report</title><style>
+body{max-width:1100px;margin:40px auto;padding:0 20px;color:#0e1a2b;font:16px/1.5 system-ui,sans-serif}
+h1,h2{color:#34308a}div{overflow:auto}table{border-collapse:collapse;font-size:14px}
+th,td{padding:7px 11px;border-bottom:1px solid #d9e0ec;text-align:left}th{background:#eef2f8}
+pre,code{white-space:pre-wrap;overflow-wrap:anywhere}@media print{div{overflow:visible}}
+</style><main><h1>piRNA Studio analysis report</h1><p>Run <code>95c40764-9c6d-47f5-bf1d-852359b28c33</code></p>
+<h2>Samples</h2><div><table><thead><tr><th scope='col'>sample_id</th><th scope='col'>condition</th><th scope='col'>replicate</th><th scope='col'>library_kit</th></tr></thead><tbody><tr><td>SRR1568761</td><td>Ago3-IP</td><td>1</td><td>TruSeq</td></tr></tbody></table></div><h2>Sample quality</h2><div><table><thead><tr><th scope='col'>sample_id</th><th scope='col'>total_reads</th><th scope='col'>piRNA_range_pct</th><th scope='col'>unique_pct</th><th scope='col'>u1_pct</th><th scope='col'>a10_pct</th><th scope='col'>pingpong_z</th><th scope='col'>status</th></tr></thead><tbody><tr><td>SRR1568761</td><td>20000</td><td>81.38</td><td>94.753</td><td>52.548</td><td>55.96</td><td>4.7831501563904535</td><td>pass</td></tr></tbody></table></div><h2>Read accounting</h2><div><table><thead><tr><th scope='col'>sample_id</th><th scope='col'>stage</th><th scope='col'>reads</th></tr></thead><tbody><tr><td>SRR1568761</td><td>Input</td><td>20000</td></tr><tr><td>SRR1568761</td><td>Adapter trimmed</td><td>19978</td></tr><tr><td>SRR1568761</td><td>Length filtered</td><td>16276</td></tr><tr><td>SRR1568761</td><td>Complexity filtered</td><td>16276</td></tr><tr><td>SRR1568761</td><td>Genome mapped</td><td>9496</td></tr><tr><td>SRR1568761</td><td>In clusters</td><td>2537.471333467821</td></tr></tbody></table></div>
+<h2>Discovered clusters</h2><div><table><thead><tr><th scope='col'>cluster_id</th><th scope='col'>chr</th><th scope='col'>start</th><th scope='col'>end</th><th scope='col'>strand_mode</th><th scope='col'>support_n</th><th scope='col'>total_reads</th></tr></thead><tbody><tr><td>C000001</td><td>chr2R</td><td>1149167</td><td>1160647</td><td>dual</td><td>1</td><td>255.75552364302345</td></tr><tr><td>C000002</td><td>chr2R</td><td>1808693</td><td>1816940</td><td>dual</td><td>1</td><td>96.03333333333332</td></tr><tr><td>C000003</td><td>chr2R</td><td>4859399</td><td>4868920</td><td>dual</td><td>1</td><td>265.39682539682565</td></tr><tr><td>C000004</td><td>chr2R</td><td>4880317</td><td>4885958</td><td>dual</td><td>1</td><td>56.3976190476191</td></tr><tr><td>C000005</td><td>chr2R</td><td>6272005</td><td>6300005</td><td>dual</td><td>1</td><td>359.5627086778556</td></tr><tr><td>C000006</td><td>chr2R</td><td>6305090</td><td>6312968</td><td>dual</td><td>1</td><td>77.19026483178652</td></tr><tr><td>C000007</td><td>chr2R</td><td>6316017</td><td>6330950</td><td>dual</td><td>1</td><td>204.22928423457205</td></tr><tr><td>C000008</td><td>chr2R</td><td>6353003</td><td>6360621</td><td>dual</td><td>1</td><td>72.4905387056222</td></tr><tr><td>C000009</td><td>chr2R</td><td>6421153</td><td>6452926</td><td>dual</td><td>1</td><td>528.9735368690482</td></tr><tr><td>C000010</td><td>chr2R</td><td>6455126</td><td>6461979</td><td>dual</td><td>1</td><td>61.21943056943057</td></tr><tr><td>C000011</td><td>chr2R</td><td>6485067</td><td>6495008</td><td>dual</td><td>1</td><td>98.49196512840143</td></tr><tr><td>C000012</td><td>chr2R</td><td>25260000</td><td>25285803</td><td>dual</td><td>1</td><td>461.73030303030276</td></tr></tbody></table></div><h2>Differential expression</h2><p>No records available.</p>
+<h2>Reference validation</h2><pre>{
+  &quot;available&quot;: true,
+  &quot;precision&quot;: 0.16666666666666666,
+  &quot;recall&quot;: 0.05263157894736842,
+  &quot;jaccard&quot;: 0.17352631074475222,
+  &quot;matched&quot;: [
+    {
+      &quot;cluster_id&quot;: &quot;C000001&quot;,
+      &quot;ref_id&quot;: &quot;Dmel_0172&quot;
+    },
+    {
+      &quot;cluster_id&quot;: &quot;C000012&quot;,
+      &quot;ref_id&quot;: &quot;Dmel_0025&quot;
+    }
+  ],
+  &quot;missed&quot;: [
+    &quot;Dmel_0001&quot;,
+    &quot;Dmel_0013&quot;,
+    &quot;Dmel_0014&quot;,
+    &quot;Dmel_0021&quot;,
+    &quot;Dmel_0031&quot;,
+    &quot;Dmel_0044&quot;,
+    &quot;Dmel_0047&quot;,
+    &quot;Dmel_0051&quot;,
+    &quot;Dmel_0053&quot;,
+    &quot;Dmel_0065&quot;,
+    &quot;Dmel_0067&quot;,
+    &quot;Dmel_0072&quot;,
+    &quot;Dmel_0079&quot;,
+    &quot;Dmel_0083&quot;,
+    &quot;Dmel_0085&quot;,
+    &quot;Dmel_0102&quot;,
+    &quot;Dmel_0106&quot;,
+    &quot;Dmel_0110&quot;,
+    &quot;Dmel_0112&quot;,
+    &quot;Dmel_0118&quot;,
+    &quot;Dmel_0121&quot;,
+    &quot;Dmel_0125&quot;,
+    &quot;Dmel_0126&quot;,
+    &quot;Dmel_0130&quot;,
+    &quot;Dmel_0131&quot;,
+    &quot;Dmel_0136&quot;,
+    &quot;Dmel_0142&quot;,
+    &quot;Dmel_0143&quot;,
+    &quot;Dmel_0151&quot;,
+    &quot;Dmel_0152&quot;,
+    &quot;Dmel_0157&quot;,
+    &quot;Dmel_0158&quot;,
+    &quot;Dmel_0171&quot;,
+    &quot;Dmel_0173&quot;,
+    &quot;Dmel_0175&quot;,
+    &quot;Dmel_0195&quot;
+  ],
+  &quot;extra&quot;: [
+    &quot;C000002&quot;,
+    &quot;C000003&quot;,
+    &quot;C000004&quot;,
+    &quot;C000005&quot;,
+    &quot;C000006&quot;,
+    &quot;C000007&quot;,
+    &quot;C000008&quot;,
+    &quot;C000009&quot;,
+    &quot;C000010&quot;,
+    &quot;C000011&quot;
+  ]
+}</pre><h2>Methods and provenance</h2><pre>{
+  &quot;created_at&quot;: &quot;2026-11-05T01:32:14.192424+00:00&quot;,
+  &quot;completed_at&quot;: &quot;2026-11-05T01:33:03.561929+00:00&quot;,
+  &quot;run_id&quot;: &quot;95c40764-9c6d-47f5-bf1d-852359b28c33&quot;,
+  &quot;dataset&quot;: &quot;Drosophila Ago3-IP, SRR1568761, chromosome 2R&quot;,
+  &quot;genome&quot;: &quot;chr2R.fa&quot;,
+  &quot;chromosome_lengths&quot;: {
+    &quot;chr2R&quot;: 25286936
+  },
+  &quot;parameters&quot;: {
+    &quot;min_length&quot;: 24,
+    &quot;max_length&quot;: 32,
+    &quot;min_cluster_size&quot;: 5000,
+    &quot;max_gap&quot;: 150,
+    &quot;min_loci&quot;: 5,
+    &quot;support&quot;: 2,
+    &quot;count_mode&quot;: &quot;fractional&quot;,
+    &quot;min_total_count&quot;: 10,
+    &quot;backend&quot;: &quot;protrac&quot;,
+    &quot;de_method&quot;: &quot;descriptive&quot;,
+    &quot;protrac_profile&quot;: &quot;clusterdb&quot;
+  },
+  &quot;tools&quot;: {
+    &quot;Python&quot;: &quot;3.12.14&quot;,
+    &quot;piRNA Studio engine&quot;: &quot;1.0&quot;,
+    &quot;cutadapt&quot;: &quot;5.1&quot;,
+    &quot;Perl&quot;: &quot;v5.32.1&quot;,
+    &quot;DUSTER_PL&quot;: &quot;2.1 (sha256 ea94869186c15c8dffe6da8077df50d79c71c118a99271d8c3052a6981d40acd)&quot;,
+    &quot;SRNAMAPPER_PL&quot;: &quot;1.0.4 (sha256 6f1e2e60c2df2b2c3648319c8286696f13f75d57bebf412e007103a9cc8c073f)&quot;,
+    &quot;PROTRAC_PL&quot;: &quot;2.4.2 (sha256 4ecd775a345c94f1c0659323504f4f3d8c789cff6d829b22a7d9dd62c6377efd)&quot;
+  },
+  &quot;inputs&quot;: [
+    {
+      &quot;name&quot;: &quot;chr2R.fa&quot;,
+      &quot;sha256&quot;: &quot;1c0e16c70c5f2fada0601490568d899db9416fb94da3fcb3680d9bf20181e5b5&quot;,
+      &quot;bytes&quot;: 25603030
+    },
+    {
+      &quot;name&quot;: &quot;SRR1568761.first20000.fastq.gz&quot;,
+      &quot;sha256&quot;: &quot;576d564da3bf07428c4d2bcecc530bc23a4821f5c3c51619602fbd28073096e1&quot;,
+      &quot;bytes&quot;: 734095
+    },
+    {
+      &quot;name&quot;: &quot;chr2R.bed&quot;,
+      &quot;sha256&quot;: &quot;a68da238e3150f2967605446e25b93b6dafee936f94b938ebc70e3aa81a42622&quot;,
+      &quot;bytes&quot;: 1212
+    }
+  ],
+  &quot;methods&quot;: &quot;Cutadapt trimmed adapters, duster filtered low-complexity reads, sRNAmapper produced best ELAND alignments, and proTRAC called sample clusters. The clusterdb caller profile used -1Tor10A 0.5, -1Tand10A 0.3, -clstrand 0.5 and -pdens 0.05. Insert lengths were 24\u201332 nt. Sample calls required 5000 bp. Consensus required overlap in 2 replicates per condition (all if fewer). Counts used fractional assignment by 5\u2032 end. No contrast with countable features.&quot;,
+  &quot;de_method&quot;: &quot;No contrast with countable features.&quot;,
+  &quot;coordinate_system&quot;: &quot;0-based half-open (BED); GFF3 is 1-based inclusive&quot;
+}</pre>
+</main></html>

@@ -1,0 +1,2 @@
+channels: [conda-forge]
+dependencies: [python=3.12.9, perl=5.32.1]

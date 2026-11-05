@@ -1,0 +1,10 @@
+{
+  "dataset": "Drosophila Ago3-IP, SRR1568761, restricted locus benchmark",
+  "genome": "dm6-2R-window.fa",
+  "reference": "published.bed",
+  "samples": [{
+    "sample_id":"SRR1568761", "condition":"Ago3-IP", "replicate":1,
+    "library_kit":"TruSeq", "fastq_path":"SRR1568761.first20000.fastq.gz"
+  }],
+  "params":{"backend":"protrac","de_method":"descriptive"}
+}

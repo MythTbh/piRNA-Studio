@@ -1,0 +1,55 @@
+{
+  "genome": "genome.fa",
+  "reference": "reference.bed",
+  "ncrna": {
+    "rRNA": "rRNA.fa"
+  },
+  "samples": [
+    {
+      "sample_id": "control_1",
+      "condition": "Control",
+      "replicate": 1,
+      "fastq_path": "control_1.fastq.gz",
+      "library_kit": "TruSeq"
+    },
+    {
+      "sample_id": "control_2",
+      "condition": "Control",
+      "replicate": 2,
+      "fastq_path": "control_2.fastq.gz",
+      "library_kit": "TruSeq"
+    },
+    {
+      "sample_id": "control_3",
+      "condition": "Control",
+      "replicate": 3,
+      "fastq_path": "control_3.fastq.gz",
+      "library_kit": "TruSeq"
+    },
+    {
+      "sample_id": "perturbed_1",
+      "condition": "Perturbed",
+      "replicate": 1,
+      "fastq_path": "perturbed_1.fastq.gz",
+      "library_kit": "TruSeq"
+    },
+    {
+      "sample_id": "perturbed_2",
+      "condition": "Perturbed",
+      "replicate": 2,
+      "fastq_path": "perturbed_2.fastq.gz",
+      "library_kit": "TruSeq"
+    },
+    {
+      "sample_id": "perturbed_3",
+      "condition": "Perturbed",
+      "replicate": 3,
+      "fastq_path": "perturbed_3.fastq.gz",
+      "library_kit": "TruSeq"
+    }
+  ],
+  "params": {
+    "de_method": "auto"
+  },
+  "dataset": "Synthetic two-condition benchmark"
+}

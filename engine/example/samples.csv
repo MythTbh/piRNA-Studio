@@ -1,0 +1,7 @@
+sample_id,condition,replicate,fastq_path,library_kit
+control_1,Control,1,control_1.fastq.gz,TruSeq
+control_2,Control,2,control_2.fastq.gz,TruSeq
+control_3,Control,3,control_3.fastq.gz,TruSeq
+perturbed_1,Perturbed,1,perturbed_1.fastq.gz,TruSeq
+perturbed_2,Perturbed,2,perturbed_2.fastq.gz,TruSeq
+perturbed_3,Perturbed,3,perturbed_3.fastq.gz,TruSeq

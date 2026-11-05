@@ -1,0 +1,17 @@
+services:
+  engine:
+    build:
+      context: .
+      dockerfile: packaging/Dockerfile.engine
+    volumes:
+      - runs:/data
+  web:
+    build:
+      context: .
+      dockerfile: packaging/Dockerfile.web
+    depends_on:
+      - engine
+    ports:
+      - "127.0.0.1:8765:80"
+volumes:
+  runs:
