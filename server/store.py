@@ -22,6 +22,17 @@ def utc_now():
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
+def terminate_process_tree(process):
+    if os.name == "nt":
+        # terminate() alone leaves Perl/cutadapt children running.
+        subprocess.run(
+            ["taskkill", "/PID", str(process.pid), "/T", "/F"],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False,
+        )
+    else:
+        os.killpg(process.pid, signal.SIGTERM)
+
+
 class Store:
     def __init__(self, directory):
         self.directory = Path(directory).resolve()
@@ -167,15 +178,7 @@ class Store:
             process = self.workers.get(run_id)
             if process and process.poll() is None:
                 try:
-                    if os.name == "nt":
-                        # terminate() alone leaves Perl/cutadapt children running.
-                        subprocess.run(
-                            ["taskkill", "/PID", str(process.pid), "/T", "/F"],
-                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                            check=False,
-                        )
-                    else:
-                        os.killpg(process.pid, signal.SIGTERM)
+                    terminate_process_tree(process)
                 except ProcessLookupError:
                     pass
             db.commit()
