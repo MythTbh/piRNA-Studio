@@ -4,6 +4,8 @@ param(
     [ValidateRange(1, 65535)][int]$Port = 8765
 )
 $ErrorActionPreference = 'Stop'
+# PowerShell 5.1's per-byte progress UI makes large downloads much slower.
+$ProgressPreference = 'SilentlyContinue'
 Set-StrictMode -Version Latest
 $root = Split-Path -Parent $PSScriptRoot
 Set-Location -LiteralPath $root
