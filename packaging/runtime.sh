@@ -12,3 +12,5 @@ fi
 export DUSTER_PL="$PWD/.tools/TBr2_duster.pl"
 export SRNAMAPPER_PL="$PWD/.tools/sRNAmapper.pl"
 export PROTRAC_PL="$PWD/.tools/proTRAC_2.4.2.pl"
+
+export PYTHONUTF8=1

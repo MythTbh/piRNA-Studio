@@ -1,0 +1,64 @@
+name: Native Windows and macOS
+on:
+  push:
+    branches: [main, native-platform-support]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2022, macos-14]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: native app
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: native app
+      - name: Install on Windows using built-in PowerShell 5.1
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          & .\packaging\launch-windows.ps1 -SetupOnly
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Install on macOS
+        if: runner.os == 'macOS'
+        shell: bash
+        run: bash packaging/setup.sh
+      - name: Check Windows setup reuse and real analysis
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          & .\packaging\launch-windows.ps1 -SetupOnly
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $env:PYTHONUTF8 = '1'
+          $env:PATH = "$pwd\.runtime\env;$pwd\.runtime\env\Scripts;$pwd\.runtime\env\Library\bin;$pwd\.runtime\strawberry\perl\bin;$pwd\.runtime\strawberry\c\bin;" + $env:PATH
+          $env:DUSTER_PL = "$pwd\.tools\TBr2_duster.pl"
+          $env:SRNAMAPPER_PL = "$pwd\.tools\sRNAmapper.pl"
+          $env:PROTRAC_PL = "$pwd\.tools\proTRAC_2.4.2.pl"
+          & .\.runtime\env\python.exe -m unittest engine.test_engine engine.test_paired engine.test_native server.test_service server.test_references server.test_uploads
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & .\.runtime\env\python.exe packaging/smoke_test.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Check macOS setup reuse and real analysis
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          bash packaging/setup.sh
+          source packaging/runtime.sh
+          "$runner" -m unittest engine.test_engine engine.test_paired engine.test_native server.test_service server.test_references server.test_uploads
+          "$runner" packaging/smoke_test.py
+      - name: Retain setup log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: setup-log-${{ matrix.os }}
+          path: |
+            native app/.runtime/setup.log
+            native app/.runtime/setup-windows.log
+          if-no-files-found: ignore

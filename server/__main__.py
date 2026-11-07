@@ -4,6 +4,7 @@ import argparse
 import os
 import sys
 import tempfile
+import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from .service import MAX_BODY, UPLOAD_LIMIT_ERROR, Service, serialized
@@ -72,6 +73,7 @@ def main():
     parser.add_argument("--port", type=int, default=8765)
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--data", default=os.environ.get("PIRNA_DATA", ".pirna-data"))
+    parser.add_argument("--open-browser", action="store_true")
     args = parser.parse_args()
     service = Service(args.data)
     with ThreadingHTTPServer((args.host, args.port), make_handler(service)) as server:
@@ -79,6 +81,8 @@ def main():
             f"piRNA Studio is ready at http://{args.host}:{server.server_port}",
             flush=True,
         )
+        if args.open_browser:
+            webbrowser.open(f"http://127.0.0.1:{server.server_port}/")
         try:
             server.serve_forever()
         except KeyboardInterrupt:

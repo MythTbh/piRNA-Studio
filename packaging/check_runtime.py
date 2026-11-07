@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+from packaging.requirements import Requirement
 
 
 def check():
@@ -14,10 +15,14 @@ def check():
     for requirement in (root / "packaging/requirements.txt").read_text().splitlines():
         if not requirement.strip() or requirement.startswith("#"):
             continue
-        package, expected = requirement.split("==")
-        if version(package) != expected:
-            raise ValueError(f"{package} {expected} is required")
-    import cutadapt, pydeseq2, snakemake, fastapi  # noqa: F401
+        req = Requirement(requirement)
+        if req.marker is not None and not req.marker.evaluate():
+            continue
+        if version(req.name) not in req.specifier:
+            raise ValueError(f"{req.name}{req.specifier} is required")
+    import cutadapt, pydeseq2, fastapi  # noqa: F401
+    if os.name != "nt":
+        import snakemake  # noqa: F401
     subprocess.run(["cutadapt", "--version"], check=True, capture_output=True)
     perl = subprocess.check_output(["perl", "-e", "print $^V"], text=True)
     if perl != "v5.32.1":

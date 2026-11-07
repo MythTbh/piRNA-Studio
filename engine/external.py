@@ -108,7 +108,12 @@ def call(genome, folder, params):
         return []
     with TemporaryDirectory(prefix="protrac-", dir=folder) as tmp:
         native = Path(tmp)
-        (native / mapfile.name).symlink_to(mapfile.resolve())
+        # Hard links do not require Windows Developer Mode or administrator rights.
+        # Fall back to a copy on filesystems without hard-link support.
+        try:
+            os.link(mapfile.resolve(), native / mapfile.name)
+        except OSError:
+            shutil.copyfile(mapfile, native / mapfile.name)
         profile_args = (
             ["-1Tor10A", "0.5", "-1Tand10A", "0.3", "-clstrand", "0.5", "-pdens", "0.05"]
             if params["protrac_profile"] == "clusterdb"

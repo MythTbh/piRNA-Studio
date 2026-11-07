@@ -32,6 +32,9 @@ class Store:
             if os.name == "nt":
                 import msvcrt
 
+                if self.owner_lock.seek(0, 2) == 0:
+                    self.owner_lock.write(b"0")
+                    self.owner_lock.flush()
                 self.owner_lock.seek(0)
                 msvcrt.locking(self.owner_lock.fileno(), msvcrt.LK_NBLCK, 1)
             else:
@@ -165,7 +168,12 @@ class Store:
             if process and process.poll() is None:
                 try:
                     if os.name == "nt":
-                        process.terminate()
+                        # terminate() alone leaves Perl/cutadapt children running.
+                        subprocess.run(
+                            ["taskkill", "/PID", str(process.pid), "/T", "/F"],
+                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                            check=False,
+                        )
                     else:
                         os.killpg(process.pid, signal.SIGTERM)
                 except ProcessLookupError:
@@ -200,7 +208,8 @@ class Store:
                     stderr=subprocess.STDOUT,
                     text=True,
                     errors="replace",
-                    start_new_session=True,
+                    start_new_session=os.name != "nt",
+                    creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0,
                 )
                 self.workers[run_id] = process
             last_line = ""
