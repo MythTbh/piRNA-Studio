@@ -24,6 +24,7 @@ $env:PROTRAC_PL = Join-Path $root '.tools\proTRAC_2.4.2.pl'
 
 function Invoke-Checked {
     param([string]$Program, [string[]]$Arguments)
+    Write-Host "Running: $Program $($Arguments -join ' ')"
     & $Program @Arguments
     if ($LASTEXITCODE -ne 0) { throw "Command failed (exit $LASTEXITCODE): $Program" }
 }
@@ -37,6 +38,7 @@ function Get-VerifiedDownload {
             Write-Host "Downloading $(Split-Path -Leaf $File)..."
             # Use Windows' bundled curl rather than .NET's buffered download path.
             Invoke-Checked 'curl.exe' @('--fail', '--location', '--retry', '2', '--connect-timeout', '30', '--max-time', '300', '--output', $partial, $Url)
+            Write-Host 'Verifying download checksum...'
             if ((Get-FileHash -LiteralPath $partial -Algorithm SHA256).Hash -ne $Sha256) { throw 'Download checksum mismatch.' }
             Move-Item -LiteralPath $partial -Destination $File -Force
             return
@@ -63,19 +65,20 @@ if (-not $ready) {
         $transcribing = $true
         Write-Host 'First launch: installing local research dependencies. Internet and several minutes are required.'
         Write-Host 'No Docker, WSL, Python installation, or administrator password is required.'
-        $mambaArchive = Join-Path $runtime 'micromamba-win64.tar.bz2'
-        Get-VerifiedDownload 'https://conda.anaconda.org/conda-forge/win-64/micromamba-2.10.0-0.tar.bz2' $mambaArchive '6283f25f8142606d86e81a43c7103b5d4f1d5c2027e3f9d7326eff23b33930d8'
-        Invoke-Checked 'tar.exe' @('-xjf', $mambaArchive, '-C', $runtime, 'Library/bin/micromamba.exe')
-        $mamba = Join-Path $runtime 'Library\bin\micromamba.exe'
-        $env:MAMBA_ROOT_PREFIX = Join-Path $runtime 'mamba'
-        $env:CONDA_PKGS_DIRS = Join-Path $runtime 'mamba\pkgs'
-        $env:XDG_CACHE_HOME = Join-Path $runtime 'cache'
-        $action = 'create'
-        if (Test-Path -LiteralPath (Join-Path $prefix 'conda-meta')) { $action = 'install' }
-        Invoke-Checked $mamba @($action, '--yes', '--no-rc', '--override-channels', '--channel', 'conda-forge', '--prefix', $prefix, 'python=3.12', 'pip')
+        $pythonArchive = Join-Path $runtime 'python-3.12.10-win64.zip'
+        Get-VerifiedDownload 'https://api.nuget.org/v3-flatcontainer/python/3.12.10/python.3.12.10.nupkg' $pythonArchive '0eb85c2dfccccf1b17352de4c397f69194035b7d37149eacc16f1147d93de3b8'
+        if (-not (Test-Path -LiteralPath $python)) {
+            Write-Host 'Extracting the official Python runtime...'
+            $unpacked = Join-Path $runtime 'python-package'
+            Expand-Archive -LiteralPath $pythonArchive -DestinationPath $unpacked -Force
+            New-Item -ItemType Directory -Path $prefix -Force | Out-Null
+            Get-ChildItem -LiteralPath (Join-Path $unpacked 'tools') | Copy-Item -Destination $prefix -Recurse -Force
+        }
+        Invoke-Checked $python @('-m', 'ensurepip', '--upgrade')
         $perlArchive = Join-Path $runtime 'strawberry-perl-5.32.1.1.zip'
         Get-VerifiedDownload 'https://strawberryperl.com/download/5.32.1.1/strawberry-perl-5.32.1.1-64bit-portable.zip' $perlArchive '692646105b0f5e058198a852dc52a48f1cebcaf676d63bbdeae12f4eaee9bf5c'
         if (-not (Test-Path -LiteralPath (Join-Path $perlRoot 'perl\bin\perl.exe'))) {
+            Write-Host 'Extracting portable Perl...'
             Expand-Archive -LiteralPath $perlArchive -DestinationPath $perlRoot -Force
         }
         $env:PIP_CACHE_DIR = Join-Path $runtime 'pip-cache'
