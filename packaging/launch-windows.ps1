@@ -35,7 +35,8 @@ function Get-VerifiedDownload {
     for ($attempt = 1; $attempt -le 3; $attempt++) {
         try {
             Write-Host "Downloading $(Split-Path -Leaf $File)..."
-            Invoke-WebRequest -UseBasicParsing -Uri $Url -OutFile $partial -TimeoutSec 600
+            # Use Windows' bundled curl rather than .NET's buffered download path.
+            Invoke-Checked 'curl.exe' @('--fail', '--location', '--retry', '2', '--connect-timeout', '30', '--max-time', '300', '--output', $partial, $Url)
             if ((Get-FileHash -LiteralPath $partial -Algorithm SHA256).Hash -ne $Sha256) { throw 'Download checksum mismatch.' }
             Move-Item -LiteralPath $partial -Destination $File -Force
             return
