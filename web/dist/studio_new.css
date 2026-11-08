@@ -3,11 +3,11 @@
   color-scheme: light;
   --bg:#eae6dc; --surface:#f3f0e8; --soft:#e3dfd4;
   --text:#26302f; --muted:#565e59; --line:#b9b9ac;
-  --p:#244b58; --psoft:#e3dfd4; --accent:#244b58;
+  --p:#344B3A; --psoft:#e3dfd4; --accent:#344B3A;
   --tealsoft:#e3dfd4; --amber:#805226; --red:#913b2f; --green:#365c42;
-  --sense:#244b58; --anti:#875236; --up:#875236; --down:#244b58;
+  --sense:#344B3A; --anti:#875236; --up:#875236; --down:#344B3A;
   --neutral:#8b918b; --white:#f3f0e8;
-  --condition-0:#244b58; --condition-1:#875236; --condition-2:#526a58;
+  --condition-0:#344B3A; --condition-1:#875236; --condition-2:#526a58;
   --condition-3:#6b6352; --condition-4:#555d63;
   --sans:Arial, Helvetica, sans-serif;
   --mono:"Courier New", monospace;
@@ -660,7 +660,7 @@ footer nav {display:flex;gap:20px;}
 
   --p: #405D49;
   --psoft: #E7EDE4;
-  --accent: #244B58;
+  --accent: #344B3A;
 
   --tealsoft: #E7EDE4;
   --amber: #967044;
