@@ -11,6 +11,8 @@ from itertools import islice
 from pathlib import Path
 
 ADAPTERS = {
+    "nebnextlowbias": "AGATCGGAAGAGCACACGTCTGAACTCCAGTCA",
+    "illuminasmallrnav15": "ATCTCGTATGCCGTCTTCTGCTTG",
     "truseq": "TGGAATTCTCGGGTGCCAAGG",
     "nebnext": "AGATCGGAAGAGCACACGTCT",
     "qiaseq": "AACTGTAGGCACCATCAAT",
@@ -137,7 +139,7 @@ def bed(path, seqs):
 
 def adapter(sample):
     value = str(sample.get("adapter") or sample.get("library_kit") or "truseq").strip()
-    norm = re.sub(r"[^a-z]", "", value.lower())
+    norm = re.sub(r"[^a-z0-9]", "", value.lower())
     if "truseq" in norm:
         return ADAPTERS["truseq"]
     for kit, seq in ADAPTERS.items():
@@ -147,6 +149,18 @@ def adapter(sample):
     if not re.fullmatch("[ACGT]{3,128}", seq):
         raise ValueError("Choose a kit preset or supply a 3–128 base adapter")
     return seq
+
+
+
+def adapter_positions(reads, sequence, backend):
+    """Predict trimming with the same matcher as the selected analysis backend."""
+    if backend == "portable":
+        return [read.find(sequence) for read in reads]
+    from cutadapt.adapters import BackAdapter
+
+    matcher = BackAdapter(sequence)
+    return [match.rstart if (match := matcher.match_to(read)) is not None else -1
+            for read in reads]
 
 
 def percentage(a, b):
@@ -313,21 +327,38 @@ def preflight(config, check_tools=True):
                 raise ValueError("FASTQ is empty")
             size += Path(sample["fastq_path"]).stat().st_size
             check(f"{name} FASTQ", "pass", f"Validated {len(seq):,} sampled records")
-            positions = [r.find(ad) for r in seq]
+            try:
+                positions = adapter_positions(seq, ad, params["backend"])
+            except ImportError:
+                check(f"{name} adapter", "error", "Cutadapt is unavailable for adapter pre-flight.",
+                      "Relaunch the app to finish dependency installation.")
+                continue
             hit = percentage(sum(p >= 0 for p in positions), len(seq))
             pct = percentage(sum(lo <= p <= hi for p in positions), len(seq))
             check(
                 f"{name} adapter",
                 "pass" if hit >= 50 else "warning",
-                f"{hit:g}% have the full selected adapter.",
-                "Confirm the adapter sequence with the library protocol." if hit < 50 else "",
+                f"{hit:g}% of sampled reads match the selected adapter ({ad}) using "
+                + ("full exact matching." if params["backend"] == "portable" else "Cutadapt, including partial and error-tolerant matches."),
+                "Confirm the 3′ adapter with the library protocol or enter its sequence. Already-trimmed reads may lack adapters. Reads without a match are discarded by this pipeline." if hit < 50 else "",
             )
-            hist = Counter((p if p >= 0 else len(r)) for p, r in zip(positions, seq))
+            if hit < 50:
+                # Diagnostic evidence only: never silently change the user's adapter.
+                candidates = []
+                for kit, candidate in ADAPTERS.items():
+                    if candidate == ad:
+                        continue
+                    full_hits = percentage(sum(candidate in read for read in seq), len(seq))
+                    if full_hits >= 50:
+                        candidates.append(f"{kit}: {full_hits:g}% full exact matches")
+                if candidates:
+                    rows[-1]["fix"] += " Other preset matches: " + "; ".join(candidates) + ". Confirm the kit before changing it."
+            hist = Counter(p for p in positions if p >= 0)
             check(
                 f"{name} lengths",
                 "pass" if pct >= 20 else "warning",
-                f"{pct:g}% have an adapter and an insert of {lo}–{hi} nt.",
-                "Review the library type and trimming parameters." if pct < 20 else "",
+                f"{pct:g}% of all sampled reads have a matched adapter and a predicted insert of {lo}–{hi} nt.",
+                ("Resolve the adapter warning before interpreting insert lengths." if hit < 50 else "Review the library type and insert-length range; matching an adapter does not establish that a read is piRNA.") if pct < 20 else "",
             )
             rows[-1]["histogram"] = dict(sorted(hist.items()))
         except (ValueError, OSError, EOFError, KeyError, TypeError) as exc:

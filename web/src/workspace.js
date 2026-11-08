@@ -852,7 +852,7 @@ function preflightHistogram(check) {
     length_histogram: check.histogram,
     peak_length: peak,
   };
-  return `<details><summary>Sampled length distribution</summary>${lengthHistogram(profile, wiz.params)}<p class="caption">Reads without a full adapter match contribute their sequenced length.</p></details>`;
+  return `<details><summary>Sampled length distribution</summary>${lengthHistogram(profile, wiz.params)}<p class="caption">Only predicted trimmed inserts or successfully merged pairs are shown. Reads without an adapter match are excluded.</p></details>`;
 }
 function wizard() {
   const titles = [
@@ -863,7 +863,7 @@ function wizard() {
   ];
   let body = "";
   if (wiz.step === 0)
-    body = `<p>Each card represents one biological replicate. For example, Control replicates 1, 2 and 3 are three cards with the same condition. A paired-end R1/R2 pair belongs on one card.</p><p class="caption">Local upload limit: ${num(maxUploadBytes / 1024 ** 3)} GiB total across all files in a submission.</p><div class="actions"><button id="addSample">Add sample / replicate</button></div><label class="field">Bulk add single-end samples<input type="file" id="reads" multiple accept=".fastq,.fq,.gz"><small>One card per file. For paired-end data, add a sample, choose Paired-end, and select R1 and R2.</small></label>${sampleRows()}<datalist id="kitOptions">${options(["TruSeq", "NEBNext", "QIAseq", "Lexogen"])}</datalist><p class="caption">Replicates are processed separately, then grouped by condition for expression analysis. Use independent biological replicates; do not label R1 and R2 as replicates.</p><label class="field">Import sample metadata (optional CSV)<input type="file" id="sheet" accept=".csv"><small>Select files first. Columns: sample_id, condition, replicate, fastq_path, library_kit. Paired-end rows also use layout=paired and fastq_r2_path. Match files by filename.</small></label>`;
+    body = `<p>Each card represents one biological replicate. For example, Control replicates 1, 2 and 3 are three cards with the same condition. A paired-end R1/R2 pair belongs on one card.</p><p class="caption">Local upload limit: ${num(maxUploadBytes / 1024 ** 3)} GiB total across all files in a submission.</p><div class="actions"><button id="addSample">Add sample / replicate</button></div><label class="field">Bulk add single-end samples<input type="file" id="reads" multiple accept=".fastq,.fq,.gz"><small>One card per file. For paired-end data, add a sample, choose Paired-end, and select R1 and R2.</small></label>${sampleRows()}<datalist id="kitOptions">${options(["TruSeq", "NEBNext", "NEBNext Low-bias", "Illumina Small RNA v1.5", "QIAseq", "Lexogen"])}</datalist><p class="caption">Choose the kit used for your library, or replace the kit name with a custom 3′ adapter sequence (3–128 A/C/G/T bases). Adapter presets do not perform kit-specific UMI extraction. Confirm the protocol before choosing.</p><p class="caption">Replicates are processed separately, then grouped by condition for expression analysis. Use independent biological replicates; do not label R1 and R2 as replicates.</p><label class="field">Import sample metadata (optional CSV)<input type="file" id="sheet" accept=".csv"><small>Select files first. Columns: sample_id, condition, replicate, fastq_path, library_kit. Paired-end rows also use layout=paired and fastq_r2_path. Match files by filename.</small></label>`;
   if (wiz.step === 1)
     body =
       referencePicker() +
