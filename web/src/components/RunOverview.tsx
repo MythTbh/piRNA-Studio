@@ -75,14 +75,14 @@ function ReadAccounting({ accounting }: { accounting: AccountingRow[] }) {
                 background: "var(--surface)",
                 color: "var(--text)",
                 border: "1px solid var(--line)",
-                borderRadius: 0,
+                borderRadius: 6,
               }}
               formatter={(v) => [number.format(Number(v)), "Retained reads"]}
             />
             <Bar
               dataKey="reads"
-              fill="var(--accent)"
-              radius={0}
+              fill="#78917B"
+              radius={[0, 4, 4, 0]}
               maxBarSize={14}
               isAnimationActive={false}
             />
