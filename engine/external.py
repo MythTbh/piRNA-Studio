@@ -20,15 +20,17 @@ def invoke(command, folder):
         subprocess.run(command, cwd=folder, stdout=stream, stderr=subprocess.STDOUT, check=True)
 
 
-def trim(path, adapter, folder):
+def trim(path, adapter, folder, mode="require"):
     # Use exact full adapters in the portable path; cutadapt uses its default error tolerance.
+    if mode == "skip":
+        return Path(path)
     output = folder / "trimmed.fastq"
     invoke(
         [
             "cutadapt",
             "-a",
             adapter,
-            "--discard-untrimmed",
+            *(["--discard-untrimmed"] if mode == "require" else []),
             "-o",
             str(output),
             str(Path(path).resolve()),

@@ -37,6 +37,9 @@ def trim_collapse(sample, params, folder):
     ad = inputs.adapter(sample)
     source = sample["fastq_path"]
     lo, hi = params["min_length"], params["max_length"]
+    mode = params.get("adapter_mode", "retain")
+    def keep(length):
+        return length > 0 and (params.get("length_filter", "range") == "all" or lo <= length <= hi)
     portable = params["backend"] == "portable"
     hist = Counter()
     collapsed = Counter()
@@ -51,19 +54,21 @@ def trim_collapse(sample, params, folder):
             insert = merge_pair(r1, r2)
             if insert is not None:
                 hist[len(insert)] += 1
-                if lo <= len(insert) <= hi:
+                if keep(len(insert)):
                     collapsed[insert] += 1
-    elif portable:
+    elif portable or mode == "skip":
         for raw in inputs.fastq(source):
             total += 1
-            index = raw.find(ad)
+            index = raw.find(ad) if mode != "skip" else -1
+            if index < 0 and mode != "require":
+                index = len(raw)
             if index >= 0:
                 hist[index] += 1
-                if lo <= index <= hi:
+                if keep(index):
                     collapsed[raw[:index]] += 1
     else:
         total = sum(1 for _ in inputs.fastq(source))
-        trimmed = external.trim(source, ad, folder)
+        trimmed = external.trim(source, ad, folder, mode)
         # cutadapt can emit zero-length inserts; a FASTQ parser accepting blank sequences is needed here.
         with trimmed.open() as stream:
             for _ in stream:
@@ -71,7 +76,7 @@ def trim_collapse(sample, params, folder):
                 next(stream)
                 next(stream)
                 hist[len(seq)] += 1
-                if lo <= len(seq) <= hi:
+                if keep(len(seq)):
                     collapsed[seq] += 1
     return total, hist, collapsed
 
@@ -93,14 +98,15 @@ def ncrna_filter(keep, filter_refs):
 
 def qc_profile(sid, total, hist, collapsed, hits, params):
     lo, hi = params["min_length"], params["max_length"]
-    sized = sum(collapsed.values())
+    in_range = {seq: count for seq, count in collapsed.items() if lo <= len(seq) <= hi}
+    sized = sum(in_range.values())
     mapped = sum({h.seq: h.reads for h in hits}.values())
     overlap, z, partners = science.pingpong(hits, lo)
     peak = max(hist, key=hist.get) if hist else None
     sized_pct = pct(sized, total)
-    unique_pct = pct(len(collapsed), sized)
+    unique_pct = pct(len(in_range), sized)
     u1 = pct(sum(h.weight for h in hits if h.seq[0] == "T"), mapped)
-    a10 = pct(sum(h.weight for h in hits if h.seq[9] == "A"), mapped)
+    a10 = pct(sum(h.weight for h in hits if len(h.seq) >= 10 and h.seq[9] == "A"), mapped)
     checks = {
         "length": sized_pct >= 20 and peak is not None and lo <= peak <= hi,
         "diversity": unique_pct >= 10,
@@ -130,8 +136,8 @@ def profile(sample, seqs, filter_refs, params, folder, genome_path):
     keep = complexity(collapsed, params, folder)
     stages = [
         ("Input", total),
-        ("Pairs merged" if inputs.is_paired(sample) else "Adapter trimmed", sum(hist.values())),
-        ("Length filtered", sum(collapsed.values())),
+        ("Pairs merged" if inputs.is_paired(sample) else "Adapter processed", sum(hist.values())),
+        ("Length filter off" if params.get("length_filter") == "all" else "Length filtered", sum(collapsed.values())),
         ("Complexity filtered", sum(keep.values())),
     ]
     keep, nc_stages = ncrna_filter(keep, filter_refs)
@@ -273,8 +279,10 @@ def run(config, outdir, progress=None, prepared=None):
             mapping += " The clusterdb caller profile used -1Tor10A 0.5, -1Tand10A 0.3, -clstrand 0.5 and -pdens 0.05."
     else:
         mapping = f"For single-end libraries, full exact adapter matches were trimmed. Shannon entropy ≥1.2 retained complex reads. The small-reference backend mapped exact matches on both strands and joined at least {params['min_loci']} loci separated by at most {params['max_gap']} bp."
+    mapping += " In retain mode unmatched reads were kept unchanged; skip mode bypassed adapter trimming; require mode discarded unmatched reads."
     methods = (
-        f"{mapping} Insert lengths were {params['min_length']}–{params['max_length']} nt. Sample calls required {params['min_cluster_size']} bp. "
+        f"{mapping} Adapter mode: {params['adapter_mode']}; length filter: {params['length_filter']}. "
+        f"The target RNA length window was {params['min_length']}–{params['max_length']} nt; with length filtering off, all nonempty processed reads were retained for mapping. Sample calls required {params['min_cluster_size']} bp. "
         f"Consensus required overlap in {params['support']} replicates per condition (all if fewer). "
         f"Counts used {params['count_mode']} assignment by 5′ end. {method}"
     )

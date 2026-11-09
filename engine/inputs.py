@@ -11,6 +11,8 @@ from itertools import islice
 from pathlib import Path
 
 ADAPTERS = {
+    "illuminamirnaud": "AGATCGGAAGAGCACACGTCTGAACTCCAGTCA",
+    "lexogenmirvel": "TGGAATTCTCGGGTGCCAAGG",
     "nebnextlowbias": "AGATCGGAAGAGCACACGTCTGAACTCCAGTCA",
     "illuminasmallrnav15": "ATCTCGTATGCCGTCTTCTGCTTG",
     "truseq": "TGGAATTCTCGGGTGCCAAGG",
@@ -19,6 +21,8 @@ ADAPTERS = {
     "lexogen": "TGGAATTCTCGGGTGCCAAGGAACTCCAGTCAC",
 }
 DEFAULTS = dict(
+    adapter_mode="retain",
+    length_filter="range",
     min_length=24,
     max_length=32,
     min_cluster_size=1000,
@@ -228,6 +232,8 @@ def preflight(config, check_tools=True):
     if (
         params["backend"] not in {"portable", "protrac"}
         or params["count_mode"] not in {"fractional", "unique"}
+        or params["adapter_mode"] not in {"retain", "require", "skip"}
+        or params["length_filter"] not in {"range", "all"}
         or params["de_method"] not in {"auto", "pydeseq2", "descriptive"}
     ):
         check(
@@ -318,7 +324,8 @@ def preflight(config, check_tools=True):
                 hist = Counter(map(len, merged))
                 pct = percentage(sum(lo <= len(r) <= hi for r in merged), len(sampled))
                 check(f"{name} lengths", "pass" if pct >= 20 else "warning",
-                      f"{pct:g}% of sampled pairs yield an insert of {lo}–{hi} nt.",
+                      f"{pct:g}% of sampled pairs yield an insert of {lo}–{hi} nt. "
+                      + ("Length filtering is off; all nonempty merged inserts are retained for mapping." if params["length_filter"] == "all" else "Inserts outside the target range are excluded."),
                       "Review the library type and insert-length range." if pct < 20 else "")
                 rows[-1]["histogram"] = dict(sorted(hist.items()))
                 continue
@@ -328,21 +335,24 @@ def preflight(config, check_tools=True):
             size += Path(sample["fastq_path"]).stat().st_size
             check(f"{name} FASTQ", "pass", f"Validated {len(seq):,} sampled records")
             try:
-                positions = adapter_positions(seq, ad, params["backend"])
+                positions = ([-1] * len(seq) if params["adapter_mode"] == "skip"
+                             else adapter_positions(seq, ad, params["backend"]))
             except ImportError:
                 check(f"{name} adapter", "error", "Cutadapt is unavailable for adapter pre-flight.",
                       "Relaunch the app to finish dependency installation.")
                 continue
             hit = percentage(sum(p >= 0 for p in positions), len(seq))
-            pct = percentage(sum(lo <= p <= hi for p in positions), len(seq))
+            lengths = [p if p >= 0 else len(read) for p, read in zip(positions, seq)
+                       if p >= 0 or params["adapter_mode"] != "require"]
+            pct = percentage(sum(lo <= length <= hi for length in lengths), len(seq))
             check(
                 f"{name} adapter",
-                "pass" if hit >= 50 else "warning",
-                f"{hit:g}% of sampled reads match the selected adapter ({ad}) using "
-                + ("full exact matching." if params["backend"] == "portable" else "Cutadapt, including partial and error-tolerant matches."),
-                "Confirm the 3′ adapter with the library protocol or enter its sequence. Already-trimmed reads may lack adapters. Reads without a match are discarded by this pipeline." if hit < 50 else "",
+                "pass" if hit >= 50 or params["adapter_mode"] == "skip" else "warning",
+                ("Adapter trimming skipped: reads declared already trimmed." if params["adapter_mode"] == "skip" else f"{hit:g}% of sampled reads match the selected adapter ({ad}) using "
+                + ("full exact matching." if params["backend"] == "portable" else "Cutadapt, including partial and error-tolerant matches.")),
+                ("Unmatched reads are retained unchanged; this does not prove they were preprocessed. Confirm the library protocol." if params["adapter_mode"] == "retain" else "Unmatched reads are discarded in Require adapter mode. Choose Retain unmatched or Already trimmed for preprocessed data.") if hit < 50 and params["adapter_mode"] != "skip" else "",
             )
-            if hit < 50:
+            if hit < 50 and params["adapter_mode"] != "skip":
                 # Diagnostic evidence only: never silently change the user's adapter.
                 candidates = []
                 for kit, candidate in ADAPTERS.items():
@@ -353,12 +363,13 @@ def preflight(config, check_tools=True):
                         candidates.append(f"{kit}: {full_hits:g}% full exact matches")
                 if candidates:
                     rows[-1]["fix"] += " Other preset matches: " + "; ".join(candidates) + ". Confirm the kit before changing it."
-            hist = Counter(p for p in positions if p >= 0)
+            hist = Counter(lengths)
             check(
                 f"{name} lengths",
                 "pass" if pct >= 20 else "warning",
-                f"{pct:g}% of all sampled reads have a matched adapter and a predicted insert of {lo}–{hi} nt.",
-                ("Resolve the adapter warning before interpreting insert lengths." if hit < 50 else "Review the library type and insert-length range; matching an adapter does not establish that a read is piRNA.") if pct < 20 else "",
+                f"{pct:g}% of sampled reads have a processed length of {lo}–{hi} nt. "
+                + ("Length filtering is off; nonempty reads outside this range are retained for mapping." if params["length_filter"] == "all" else "Reads outside this range are excluded; widen the range or turn length filtering off to retain them."),
+                ("Unmatched read lengths are sequenced lengths, not confirmed insert lengths." if hit < 50 and params["adapter_mode"] != "skip" else "Review the library type and insert-length range; read length alone does not establish that a read is piRNA.") if pct < 20 else "",
             )
             rows[-1]["histogram"] = dict(sorted(hist.items()))
         except (ValueError, OSError, EOFError, KeyError, TypeError) as exc:

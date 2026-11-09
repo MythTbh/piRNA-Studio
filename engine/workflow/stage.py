@@ -84,8 +84,8 @@ def main(action, config_path, root, sid):
         )
         stages = [
             ("Input", row["total"]),
-            ("Pairs merged" if inputs.is_paired(sample) else "Adapter trimmed", sum(hist.values())),
-            ("Length filtered", sum(row["counts"].values())),
+            ("Pairs merged" if inputs.is_paired(sample) else "Adapter processed", sum(hist.values())),
+            ("Length filter off" if params.get("length_filter") == "all" else "Length filtered", sum(row["counts"].values())),
             ("Complexity filtered", sum(read("dust").values())),
             *read("filter")["stages"],
             ("Genome mapped", metrics["mapped_reads"]),

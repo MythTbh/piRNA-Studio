@@ -105,6 +105,8 @@ def stage_upload(body, content_type, staged):
     ):
         raise ValueError("Provide parameter names and scalar values")
     allowed = {
+        "adapter_mode",
+        "length_filter",
         "min_length",
         "max_length",
         "min_cluster_size",

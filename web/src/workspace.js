@@ -744,6 +744,8 @@ const blankWizard = () => ({
   referenceState: null,
   referenceBusy: false,
   params: {
+    adapter_mode: "retain",
+    length_filter: "all",
     min_length: 24,
     max_length: 32,
     min_cluster_size: 1000,
@@ -852,7 +854,7 @@ function preflightHistogram(check) {
     length_histogram: check.histogram,
     peak_length: peak,
   };
-  return `<details><summary>Sampled length distribution</summary>${lengthHistogram(profile, wiz.params)}<p class="caption">Only predicted trimmed inserts or successfully merged pairs are shown. Reads without an adapter match are excluded.</p></details>`;
+  return `<details><summary>Sampled length distribution</summary>${lengthHistogram(profile, wiz.params)}<p class="caption">Lengths reflect the selected adapter handling: trimmed reads, retained unmatched reads, or merged pairs. Unmatched reads have unconfirmed insert lengths.</p></details>`;
 }
 function wizard() {
   const titles = [
@@ -863,7 +865,7 @@ function wizard() {
   ];
   let body = "";
   if (wiz.step === 0)
-    body = `<p>Each card represents one biological replicate. For example, Control replicates 1, 2 and 3 are three cards with the same condition. A paired-end R1/R2 pair belongs on one card.</p><p class="caption">Local upload limit: ${num(maxUploadBytes / 1024 ** 3)} GiB total across all files in a submission.</p><div class="actions"><button id="addSample">Add sample / replicate</button></div><label class="field">Bulk add single-end samples<input type="file" id="reads" multiple accept=".fastq,.fq,.gz"><small>One card per file. For paired-end data, add a sample, choose Paired-end, and select R1 and R2.</small></label>${sampleRows()}<datalist id="kitOptions">${options(["TruSeq", "NEBNext", "NEBNext Low-bias", "Illumina Small RNA v1.5", "QIAseq", "Lexogen"])}</datalist><p class="caption">Choose the kit used for your library, or replace the kit name with a custom 3′ adapter sequence (3–128 A/C/G/T bases). Adapter presets do not perform kit-specific UMI extraction. Confirm the protocol before choosing.</p><p class="caption">Replicates are processed separately, then grouped by condition for expression analysis. Use independent biological replicates; do not label R1 and R2 as replicates.</p><label class="field">Import sample metadata (optional CSV)<input type="file" id="sheet" accept=".csv"><small>Select files first. Columns: sample_id, condition, replicate, fastq_path, library_kit. Paired-end rows also use layout=paired and fastq_r2_path. Match files by filename.</small></label>`;
+    body = `<p>Each card represents one biological replicate. For example, Control replicates 1, 2 and 3 are three cards with the same condition. A paired-end R1/R2 pair belongs on one card.</p><p class="caption">Local upload limit: ${num(maxUploadBytes / 1024 ** 3)} GiB total across all files in a submission.</p><div class="actions"><button id="addSample">Add sample / replicate</button></div><label class="field">Bulk add single-end samples<input type="file" id="reads" multiple accept=".fastq,.fq,.gz"><small>One card per file. For paired-end data, add a sample, choose Paired-end, and select R1 and R2.</small></label>${sampleRows()}<datalist id="kitOptions">${options(["TruSeq", "NEBNext", "NEBNext Low-bias", "Illumina miRNA UD", "Lexogen miRVEL", "Illumina Small RNA v1.5", "QIAseq", "Lexogen"])}</datalist><p class="caption">Choose the kit used for your library, or replace the kit name with a custom 3′ adapter sequence (3–128 A/C/G/T bases). Adapter presets do not perform kit-specific UMI extraction. Confirm the protocol before choosing.</p><p class="caption">Replicates are processed separately, then grouped by condition for expression analysis. Use independent biological replicates; do not label R1 and R2 as replicates.</p><label class="field">Import sample metadata (optional CSV)<input type="file" id="sheet" accept=".csv"><small>Select files first. Columns: sample_id, condition, replicate, fastq_path, library_kit. Paired-end rows also use layout=paired and fastq_r2_path. Match files by filename.</small></label>`;
   if (wiz.step === 1)
     body =
       referencePicker() +
@@ -875,7 +877,7 @@ function wizard() {
         .join("") +
       "</details>";
   if (wiz.step === 2)
-    body = `<div class="formrow">${intParam("min_length", "Minimum insert length (nt)")}${intParam("max_length", "Maximum insert length (nt)")}${intParam("min_cluster_size", "Minimum cluster size (bp)")}</div>${selectParam("backend", "Analysis backend", { protrac: "proTRAC · full reference genomes" })}<details><summary>Advanced parameters</summary><div class="formrow">${intParam("support", "Minimum replicate support")}${intParam("min_loci", "Minimum distinct loci")}${intParam("max_gap", "Maximum locus gap (bp)")}${intParam("min_total_count", "Minimum total DE count")}</div>${selectParam("protrac_profile", "proTRAC thresholds", { default: "Standard proTRAC", clusterdb: "piRNAclusterDB profile" })}${selectParam("count_mode", "Multimapping policy", { fractional: "Fractional (1 / number of hits)", unique: "Unique hits only" })}${selectParam("de_method", "Expression method", { auto: "Auto · PyDESeq2 if installed", pydeseq2: "Require PyDESeq2", descriptive: "Descriptive fold changes" })}</details>`;
+    body = `${selectParam("adapter_mode", "Adapter handling (single-end)", { retain: "Trim matching adapters; retain unmatched reads", skip: "Already trimmed: skip adapter trimming", require: "Require adapter: discard unmatched reads" })}${selectParam("length_filter", "Read length filter", { all: "Off: retain all nonempty processed reads", range: "Keep only the target length range" })}<p class="caption">Missing adapters do not prove that reads were preprocessed. The target length range remains a piRNA quality check and caller parameter; retaining other lengths does not classify them as piRNAs.</p><div class="formrow">${intParam("min_length", "Minimum insert length (nt)")}${intParam("max_length", "Maximum insert length (nt)")}${intParam("min_cluster_size", "Minimum cluster size (bp)")}</div>${selectParam("backend", "Analysis backend", { protrac: "proTRAC · full reference genomes" })}<details><summary>Advanced parameters</summary><div class="formrow">${intParam("support", "Minimum replicate support")}${intParam("min_loci", "Minimum distinct loci")}${intParam("max_gap", "Maximum locus gap (bp)")}${intParam("min_total_count", "Minimum total DE count")}</div>${selectParam("protrac_profile", "proTRAC thresholds", { default: "Standard proTRAC", clusterdb: "piRNAclusterDB profile" })}${selectParam("count_mode", "Multimapping policy", { fractional: "Fractional (1 / number of hits)", unique: "Unique hits only" })}${selectParam("de_method", "Expression method", { auto: "Auto · PyDESeq2 if installed", pydeseq2: "Require PyDESeq2", descriptive: "Descriptive fold changes" })}</details>`;
   if (wiz.step === 3)
     body = wiz.checks
       ? wiz.checks.checks

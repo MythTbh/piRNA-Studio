@@ -154,7 +154,7 @@ def counts_and_clusters(intervals, all_hits, calls, params, repeats):
                 total += h.weight
                 plus += h.weight * (h.strand == "+")
                 u1 += h.weight * (h.seq[0] == "T")
-                a10 += h.weight * (h.seq[9] == "A")
+                a10 += h.weight * (len(h.seq) >= 10 and h.seq[9] == "A")
             counts[sid] = total
             ints[sid] = int(unique)
         total = sum(counts.values())
