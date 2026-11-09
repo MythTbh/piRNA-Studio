@@ -87,3 +87,38 @@ The setup wizard asks for an organism, not a genome file. Choose fruit fly, C. e
 The wizard uses the installed proTRAC backend for these full genomes. Pre-flight checks external-tool availability before analysis. The public hosted website is a static workspace; downloads and computation run in the downloadable local app. No genome FASTA is uploaded by the user.
 
 Assemblies are pinned in `engine/reference_catalog.json` (and mirrored for the web picker). The run manifest records the assembly accession/version, NCBI URL, expected MD5, SHA-256, and verification time. Sequence headers retain NCBI accession names; optional BED annotations must use the same assembly and sequence IDs. API/CLI workflows still accept custom genomes for existing scripts and the synthetic examples.
+
+
+## Large-library native processing
+
+The native mapper now indexes at most 250,000 distinct sequences per batch,
+rather than building a forward/reverse index for the whole library at once.
+Each sequence is still searched against the entire reference with the same
+sRNAmapper settings. Multi-mapping multiplicity is preserved. Batch alignments
+are globally sorted on disk before proTRAC. Genome rescanning adds work, so this
+is a peak-memory improvement, not a guaranteed wall-clock speedup.
+
+Duster runs at most two independent batches concurrently using the same research
+script. Cutadapt uses two cores and its own read-count report, removing the extra
+Python FASTQ validation/counting pass before trimming. Cutadapt still validates
+its input. No read subsampling, length-range changes, or scientific-filter changes
+are introduced by these optimizations.
+
+Completed native batches and trimmed files have content-verified checkpoints in
+`outputs/work`. An interrupted CLI run can be retried with the **same configuration
+and output directory** using `python -m engine.pipeline CONFIG OUTPUT_DIRECTORY`
+with the installed research environment active. Never run two workers against the
+same output directory. Completed results are protected against overwriting.
+Changed input/tool/reference content invalidates affected batch checkpoints.
+Incomplete batches are rerun. This does not add a UI resume button; a new browser
+submission creates a separate run and does not reuse another run's checkpoints.
+The old temporary-directory installation cannot automatically reuse its in-flight
+work with this version. Updating GitHub does not update a running downloaded copy.
+
+Advanced deployments can set `PIRNA_BATCH_READS` from 1 to 1,000,000; the default is
+250,000. Smaller batches lower native index memory at the cost of more reference
+scans. Python read-count dictionaries, retained alignment records, and proTRAC can
+still consume substantial RAM on very large or highly repetitive datasets. This
+change does not make the entire analysis constant-memory or establish a runtime
+for any full-sized dataset. Work/checkpoint files use additional disk space and
+remain available for diagnosis and retry.

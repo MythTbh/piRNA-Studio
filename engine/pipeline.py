@@ -12,7 +12,7 @@ from collections import Counter
 from datetime import datetime, timezone
 from importlib import metadata
 from pathlib import Path
-from tempfile import TemporaryDirectory
+from contextlib import nullcontext
 
 if __package__:
     from . import inputs, science, external
@@ -67,8 +67,8 @@ def trim_collapse(sample, params, folder):
                 if keep(index):
                     collapsed[raw[:index]] += 1
     else:
-        total = sum(1 for _ in inputs.fastq(source))
         trimmed = external.trim(source, ad, folder, mode)
+        total = json.loads((folder / "trim-summary.json").read_text())["read_counts"]["input"]
         # cutadapt can emit zero-length inserts; a FASTQ parser accepting blank sequences is needed here.
         with trimmed.open() as stream:
             for _ in stream:
@@ -98,13 +98,13 @@ def ncrna_filter(keep, filter_refs):
 
 def qc_profile(sid, total, hist, collapsed, hits, params):
     lo, hi = params["min_length"], params["max_length"]
-    in_range = {seq: count for seq, count in collapsed.items() if lo <= len(seq) <= hi}
-    sized = sum(in_range.values())
+    sized = sum(count for seq, count in collapsed.items() if lo <= len(seq) <= hi)
+    distinct_in_range = sum(1 for seq in collapsed if lo <= len(seq) <= hi)
     mapped = sum({h.seq: h.reads for h in hits}.values())
     overlap, z, partners = science.pingpong(hits, lo)
     peak = max(hist, key=hist.get) if hist else None
     sized_pct = pct(sized, total)
-    unique_pct = pct(len(in_range), sized)
+    unique_pct = pct(distinct_in_range, sized)
     u1 = pct(sum(h.weight for h in hits if h.seq[0] == "T"), mapped)
     a10 = pct(sum(h.weight for h in hits if len(h.seq) >= 10 and h.seq[9] == "A"), mapped)
     checks = {
@@ -186,7 +186,9 @@ def run(config, outdir, progress=None, prepared=None):
     refs = {k: inputs.genome(v, rna=True) for k, v in config.get("ncrna", {}).items()}
     qc, accounting = [], []
     all_hits, calls, partners = {}, {}, {}
-    with TemporaryDirectory(dir=out) as tmp:
+    workspace = out / "work"
+    workspace.mkdir(exist_ok=True)
+    with nullcontext(workspace) as tmp:
         folder = Path(tmp)
         genome_path = folder / "genome.fa"
         if params["backend"] == "protrac" and prepared is None:
@@ -196,7 +198,7 @@ def run(config, outdir, progress=None, prepared=None):
             sid = sample["sample_id"]
             emit("Mapping and cluster calling", 5 + int(65 * index / len(samples)), f"Processing {sid}")
             directory = folder / "samples" / sid
-            directory.mkdir(parents=True)
+            directory.mkdir(parents=True, exist_ok=True)
             try:
                 if prepared is None:
                     hits, found, metrics, stages, paired = profile(
@@ -226,7 +228,10 @@ def run(config, outdir, progress=None, prepared=None):
                         }
                         or path.suffix == ".gtf"
                     ):
-                        shutil.copy(path, archive / path.name)
+                        destination = archive / path.relative_to(directory)
+                        destination.parent.mkdir(parents=True, exist_ok=True)
+                        if path.resolve() != destination.resolve():
+                            shutil.copy(path, destination)
             all_hits[sid], calls[sid], partners[sid] = hits, found, paired
             qc.append(metrics)
             accounting.extend(dict(sample_id=sid, stage=name, reads=n) for name, n in stages)
@@ -312,6 +317,9 @@ def run(config, outdir, progress=None, prepared=None):
         reference_assembly=config.get("reference_assembly"),
         chromosome_lengths={c: len(seq) for c, seq in seqs.items()},
         parameters=params,
+        execution=(dict(native_batch_reads=external.batches.batch_size(), mapping_workers=1,
+                        duster_workers=2, cutadapt_cores=2, checkpoints="content-verified")
+                   if params["backend"] == "protrac" else {}),
         tools=tools,
         inputs=manifest,
         methods=methods,

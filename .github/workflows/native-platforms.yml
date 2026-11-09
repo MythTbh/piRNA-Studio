@@ -44,7 +44,7 @@ jobs:
           $env:DUSTER_PL = "$pwd\.tools\TBr2_duster.pl"
           $env:SRNAMAPPER_PL = "$pwd\.tools\sRNAmapper.pl"
           $env:PROTRAC_PL = "$pwd\.tools\proTRAC_2.4.2.pl"
-          & .\.runtime\env\python.exe -m unittest engine.test_adapters engine.test_engine engine.test_paired engine.test_native server.test_service server.test_references server.test_uploads server.test_processes
+          & .\.runtime\env\python.exe -m unittest engine.test_batches engine.test_adapters engine.test_engine engine.test_paired engine.test_native server.test_service server.test_references server.test_uploads server.test_processes
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           & .\.runtime\env\python.exe packaging/smoke_test.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -54,7 +54,7 @@ jobs:
         run: |
           bash packaging/setup.sh
           source packaging/runtime.sh
-          "$runner" -m unittest engine.test_adapters engine.test_engine engine.test_paired engine.test_native server.test_service server.test_references server.test_uploads server.test_processes
+          "$runner" -m unittest engine.test_batches engine.test_adapters engine.test_engine engine.test_paired engine.test_native server.test_service server.test_references server.test_uploads server.test_processes
           "$runner" packaging/smoke_test.py
       - name: Retain setup log on failure
         if: failure()

@@ -1,5 +1,6 @@
 """Adapters for locally installed research tools. No shell or downloaded Perl code."""
 
+import json
 import os
 import re
 import shutil
@@ -10,8 +11,10 @@ from tempfile import TemporaryDirectory
 
 if __package__:
     from .science import Hit
+    from . import batches
 else:
     from science import Hit
+    import batches
 
 
 def invoke(command, folder):
@@ -25,9 +28,22 @@ def trim(path, adapter, folder, mode="require"):
     if mode == "skip":
         return Path(path)
     output = folder / "trimmed.fastq"
+    context = json.dumps([batches.digest(path), adapter, mode,
+                          subprocess.check_output(["cutadapt", "--version"], text=True).strip()])
+    outputs = ["trimmed.fastq", "trim-summary.json"]
+    checkpoint = folder / "trim-cache"
+    checkpoint.mkdir(exist_ok=True)
+    # Reuse only complete outputs with matching content and tool version.
+    try:
+        saved = json.loads((checkpoint / "complete.json").read_text())
+        if saved["key"] == context and all(saved["outputs"][n] == batches.digest(folder / n) for n in outputs):
+            return output
+    except (OSError, ValueError, KeyError):
+        pass
+    (checkpoint / "complete.json").unlink(missing_ok=True)
     invoke(
         [
-            "cutadapt",
+            "cutadapt", "-j", "2", "--json", str(folder / "trim-summary.json"),
             "-a",
             adapter,
             *(["--discard-untrimmed"] if mode == "require" else []),
@@ -37,6 +53,10 @@ def trim(path, adapter, folder, mode="require"):
         ],
         folder,
     )
+    record = {"key": context, "outputs": {n: batches.digest(folder / n) for n in outputs}}
+    temporary = checkpoint / "complete.tmp"
+    temporary.write_text(json.dumps(record))
+    temporary.replace(checkpoint / "complete.json")
     return output
 
 
@@ -49,58 +69,29 @@ def write_collapsed(path, counts):
 def dust(counts, folder):
     if not counts:
         return {}
-    src = folder / "collapsed.fa"
-    write_collapsed(src, counts)
-    invoke(["perl", os.environ["DUSTER_PL"], "-i", src.name], folder)
-    out = {}
-    with (folder / (src.name + ".no-dust")).open() as stream:
-        for head in stream:
-            if not head.startswith(">"):
-                raise ValueError("Unexpected duster FASTA output")
-            out[next(stream).strip().upper()] = int(head[1:].strip())
-    return out
+    return batches.dust(counts, folder, invoke)
 
 
 def align(seqs, genome, folder):
-    if not seqs:
-        (folder / "aligned.map").write_bytes(b"")
-        return []
-    src = folder / "filtered.fa"
-    write_collapsed(src, seqs)
     mapfile = folder / "aligned.map"
-    invoke(
-        [
-            "perl",
-            os.environ["SRNAMAPPER_PL"],
-            "-input",
-            src.name,
-            "-genome",
-            str(genome),
-            "-alignments",
-            "best",
-            "-format",
-            "eland",
-            "-output",
-            mapfile.name,
-        ],
-        folder,
-    )
-    raw = []
+    if not seqs:
+        mapfile.write_bytes(b"")
+        return []
+    batches.map_reads(seqs, genome, folder, invoke)
     multiplicity = Counter()
+    with mapfile.open() as stream:
+        for line in stream:
+            if line.strip():
+                multiplicity[line.split()[4].upper()] += 1
+    hits = []
     with mapfile.open() as stream:
         for line in stream:
             if not line.strip():
                 continue
             chrom, pos, ref, header, seq, mm, strand = line.rstrip().split()[:7]
-            start = int(pos) - 1
             seq = seq.upper()
-            if seq not in seqs:
-                raise ValueError("Mapper returned a sequence absent from the filtered FASTA")
-            if strand not in {"+", "-"} or start < 0:
-                raise ValueError("Invalid ELAND alignment")
-            raw.append((chrom, start, start + len(ref), strand, seq))
-            multiplicity[seq] += 1
-    hits = [Hit(*r, seqs[r[-1]], multiplicity[r[-1]]) for r in raw]
+            start = int(pos) - 1
+            hits.append(Hit(chrom, start, start + len(ref), strand, seq, seqs[seq], multiplicity[seq]))
     return hits
 
 
